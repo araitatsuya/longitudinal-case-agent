@@ -1,0 +1,30 @@
+{
+  "patient_id": "sam-001",
+  "event_type": "admission",
+  "timestamp": "2026-10-07T09:00:00",
+  "source": "ER intake",
+  "disclaimer": "Fictional patient. Demo only, not medical advice.",
+  "patient": {
+    "name": "Sam Rivera",
+    "age": 45,
+    "sex": "male",
+    "allergies": ["none known"],
+    "history": ["no major illnesses", "non-smoker"]
+  },
+  "chief_complaint": "Fever, cough, and tiredness for 3 days",
+  "symptoms": [
+    "fever with chills",
+    "cough with yellow-green phlegm",
+    "mild right-sided chest pain when breathing deeply",
+    "fatigue"
+  ],
+  "vitals": {
+    "temperature_c": 39.1,
+    "heart_rate_bpm": 104,
+    "blood_pressure": "128/80",
+    "respiratory_rate": 22,
+    "oxygen_saturation_pct": 94
+  },
+  "exam": "Crackles heard in the lower right lung.",
+  "doctor_note": "Suspect pneumonia, but a viral infection is also possible. Ordered blood tests, chest X-ray, and cultures."
+}

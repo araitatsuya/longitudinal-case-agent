@@ -1,0 +1,21 @@
+{
+  "patient_id": "sam-001",
+  "event_type": "lab_results",
+  "timestamp": "2026-10-08T14:30:00",
+  "source": "Hospital lab system",
+  "disclaimer": "Fictional patient. Demo only, not medical advice.",
+  "results": [
+    { "test": "White blood cell count (WBC)", "value": 16.2, "unit": "x10^9/L", "normal_range": "4.0-11.0", "flag": "HIGH" },
+    { "test": "Neutrophils", "value": 85, "unit": "%", "normal_range": "40-70", "flag": "HIGH" },
+    { "test": "C-reactive protein (CRP)", "value": 145, "unit": "mg/L", "normal_range": "<10", "flag": "HIGH" },
+    { "test": "Procalcitonin", "value": 2.1, "unit": "ng/mL", "normal_range": "<0.1", "flag": "HIGH" },
+    { "test": "Lactate", "value": 1.4, "unit": "mmol/L", "normal_range": "0.5-2.0", "flag": "NORMAL" },
+    { "test": "Creatinine", "value": 0.9, "unit": "mg/dL", "normal_range": "0.7-1.3", "flag": "NORMAL" },
+    { "test": "Influenza / COVID-19 PCR", "value": "negative", "flag": "NORMAL" }
+  ],
+  "imaging": {
+    "test": "Chest X-ray",
+    "finding": "Patchy consolidation in the right lower lobe. No fluid around the lung."
+  },
+  "pending": ["Blood culture", "Sputum culture"]
+}

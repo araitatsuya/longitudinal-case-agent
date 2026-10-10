@@ -1,0 +1,28 @@
+{
+  "patient_id": "sam-001",
+  "event_type": "culture_results",
+  "timestamp": "2026-10-09T10:00:00",
+  "source": "Hospital microbiology lab",
+  "disclaimer": "Fictional patient. Demo only, not medical advice.",
+  "results": [
+    {
+      "test": "Sputum culture",
+      "organism": "Streptococcus pneumoniae",
+      "susceptibility": {
+        "penicillin": "susceptible",
+        "amoxicillin": "susceptible",
+        "ceftriaxone": "susceptible",
+        "azithromycin": "resistant"
+      }
+    },
+    { "test": "Blood culture", "value": "no growth at 48 hours" },
+    { "test": "Legionella urinary antigen", "value": "negative" }
+  ],
+  "vitals": {
+    "temperature_c": 37.4,
+    "heart_rate_bpm": 86,
+    "respiratory_rate": 18,
+    "oxygen_saturation_pct": 97
+  },
+  "nurse_note": "Patient eating well and feeling much better. Cough improving."
+}

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case Agent</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #667085; --border: #e3e6eb;
+    --accent: #2f6fde; --accent-soft: #e8f0fd; --new: #127a4a; --new-soft: #e6f6ee; --warn: #9a5b00; --warn-soft: #fff4e0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --card: #1b1f27; --text: #e6e8ec; --muted: #9aa3b2; --border: #2c323d;
+      --accent: #7aa7ff; --accent-soft: #1f2a40; --new: #5fd39b; --new-soft: #183126; --warn: #f0b45a; --warn-soft: #33270f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--card); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  header h1 { font-size: 18px; margin: 0; }
+  .pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .spacer { flex: 1; }
+  select, button { font: inherit; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
+  button { cursor: pointer; }
+  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; padding: 20px 24px; max-width: 1300px; margin: 0 auto; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 16px; } header { padding: 12px 16px; } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; }
+  h3 { font-size: 13px; color: var(--muted); margin: 16px 0 4px; }
+  ul { margin: 0; padding-left: 20px; }
+  .versions { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .versions button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .dx { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .changes { background: var(--new-soft); border-radius: 8px; padding: 10px 14px; margin-top: 14px; }
+  .changes h3 { color: var(--new); margin-top: 0; }
+  .timeline { list-style: none; padding: 0; margin: 0; }
+  .timeline li { border-left: 3px solid var(--border); padding: 0 0 18px 14px; position: relative; }
+  .timeline li::before { content: ""; position: absolute; left: -7px; top: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); }
+  .timeline li:last-child { padding-bottom: 0; }
+  .t-head { font-weight: 600; }
+  .t-meta { color: var(--muted); font-size: 12px; }
+  .t-why { font-size: 13px; margin-top: 4px; }
+  .empty { color: var(--muted); padding: 30px 0; text-align: center; }
+  code { background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 0 16px 24px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Longitudinal Case Agent</h1>
+  <span class="pill" id="planner">planner: …</span>
+  <span class="pill warn">Fictional patient · demo only, not medical advice</span>
+  <span class="spacer"></span>
+  <select id="patient" aria-label="Patient"></select>
+  <button id="reset" title="Delete this patient's data so the demo can be replayed">Reset</button>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Care plan</h2>
+    <div id="plan"><div class="empty">Waiting for the first event…<br>POST <code>inbox/day1_admit.json</code> to <code>/events</code>.</div></div>
+  </section>
+  <section class="card">
+    <h2>Audit trail</h2>
+    <div id="audit"><div class="empty">No events yet.</div></div>
+  </section>
+</main>
+<footer>Updates automatically every 2 seconds.</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const list = (items) => items && items.length ? `<ul>${items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>` : `<div class="muted">None</div>`;
+const fmt = (iso) => iso ? new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+
+let selectedVersion = null;   // null = follow the latest version
+let lastSignature = "";
+
+function renderPlan(plans) {
+  if (!plans.length) return;
+  const latest = plans[plans.length - 1].version;
+  const v = selectedVersion ?? latest;
+  const p = plans.find((x) => x.version === v) || plans[plans.length - 1];
+  const tabs = plans.map((x) => `<button data-v="${x.version}" class="${x.version === p.version ? "active" : ""}">v${x.version}${x.version === latest ? " (current)" : ""}</button>`).join("");
+  $("plan").innerHTML = `
+    <div class="versions">${tabs}</div>
+    <p class="dx">${esc(p.working_diagnosis)}</p>
+    <div class="muted">Confidence: <b>${esc(p.confidence)}</b> · v${p.version} created ${fmt(p.created_at)} from <code>${esc(p.trigger_event_id)}</code> · ${esc(p.planner)}</div>
+    <p>${esc(p.patient_summary)}</p>
+    <div class="changes"><h3>What changed in v${p.version}</h3>${list(p.changes)}<p class="t-why"><b>Why:</b> ${esc(p.rationale)}</p></div>
+    <h3>Medications</h3>${list(p.medications)}
+    <h3>Actions</h3>${list(p.actions)}
+    <h3>Monitoring</h3>${list(p.monitoring)}
+    <h3>Pending</h3>${list(p.pending)}
+    <h3>Still considering</h3>${list(p.differential)}`;
+  $("plan").querySelectorAll(".versions button").forEach((b) => b.onclick = () => {
+    const n = Number(b.dataset.v);
+    selectedVersion = n === latest ? null : n;
+    renderPlan(plans);
+  });
+}
+
+function renderAudit(audit) {
+  if (!audit.length) return;
+  $("audit").innerHTML = `<ul class="timeline">${audit.slice().reverse().map((a) => `
+    <li>
+      <div class="t-head">${a.from_version ? `v${a.from_version} → v${a.to_version}` : `Created v${a.to_version}`} · ${esc(a.event_type.replace(/_/g, " "))}</div>
+      <div class="t-meta">Event time ${fmt(a.event_time)} · recorded ${fmt(a.recorded_at)} · <code>${esc(a.event_id)}</code></div>
+      ${list(a.changes)}
+      <div class="t-why"><b>Why:</b> ${esc(a.rationale)}</div>
+    </li>`).join("")}</ul>`;
+}
+
+async function refresh() {
+  try {
+    const status = await (await fetch("/api/status")).json();
+    $("planner").textContent = `planner: ${status.planner}`;
+    const sel = $("patient");
+    const current = sel.value;
+    if (sel.options.length !== status.patients.length || [...sel.options].some((o, i) => o.value !== status.patients[i])) {
+      sel.innerHTML = status.patients.map((p) => `<option>${esc(p)}</option>`).join("");
+      if (status.patients.includes(current)) sel.value = current;
+    }
+    $("reset").disabled = !sel.value;
+    if (!sel.value) {
+      if (lastSignature !== "") location.reload();
+      return;
+    }
+    const data = await (await fetch(`/api/patients/${encodeURIComponent(sel.value)}`)).json();
+    const sig = `${sel.value}:${data.audit.length}`;
+    if (sig !== lastSignature) {
+      if (lastSignature.startsWith(sel.value + ":")) selectedVersion = null;  // new version arrived: jump to it
+      lastSignature = sig;
+      renderPlan(data.plans);
+      renderAudit(data.audit);
+    }
+  } catch (e) { console.error(e); }
+}
+
+$("patient").onchange = () => { lastSignature = ""; selectedVersion = null; refresh(); };
+$("reset").onclick = async () => {
+  const p = $("patient").value;
+  if (p && confirm(`Delete all data for ${p}?`)) { await fetch(`/api/patients/${encodeURIComponent(p)}`, { method: "DELETE" }); location.reload(); }
+};
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
